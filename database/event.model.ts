@@ -104,41 +104,57 @@ const EventSchema = new Schema<IEvent>(
 // Index for faster slug-based queries
 EventSchema.index({ slug: 1 });
 
-// Pre-save hook: generate slug from title and normalize date/time
-EventSchema.pre('save', function (next) {
-  // Generate slug only if title is modified
-  if (this.isModified('title')) {
-    this.slug = this.title
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '') // Remove special characters
-      .replace(/\s+/g, '-') // Replace spaces with hyphens
-      .replace(/-+/g, '-'); // Replace multiple hyphens with single hyphen
-  }
+// Pre-save hook: generate slug from title (ensure uniqueness) and normalize date/time
+EventSchema.pre('save', async function (this: any, next) {
+  try {
+    // Generate slug if title changed or slug not set
+    if (this.isModified('title') || !this.slug) {
+      const baseSlug = String(this.title || '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '') // Remove special characters
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-'); // Replace multiple hyphens with single hyphen
 
-  // Normalize date to ISO format if modified
-  if (this.isModified('date')) {
-    try {
+      const EventModel = this.model('Event');
+      let candidate: string = baseSlug || String(Date.now());
+      let suffix = 0;
+
+      while (true) {
+        const exists = await EventModel.findOne({ slug: candidate, _id: { $ne: this._id } })
+          .select('_id')
+          .lean()
+          .exec();
+        if (!exists) break;
+        suffix += 1;
+        candidate = `${baseSlug}-${suffix}`;
+      }
+
+      this.slug = candidate;
+    }
+
+    // Normalize date to ISO format if modified
+    if (this.isModified('date')) {
       const parsedDate = new Date(this.date);
       if (isNaN(parsedDate.getTime())) {
         return next(new Error('Invalid date format'));
       }
       this.date = parsedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-    } catch (error) {
-      return next(new Error('Invalid date format'));
     }
-  }
 
-  // Normalize time to HH:MM format if modified
-  if (this.isModified('time')) {
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(this.time.trim())) {
-      return next(new Error('Time must be in HH:MM format'));
+    // Normalize time to HH:MM format if modified
+    if (this.isModified('time')) {
+      const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeRegex.test(String(this.time).trim())) {
+        return next(new Error('Time must be in HH:MM format'));
+      }
+      this.time = String(this.time).trim();
     }
-    this.time = this.time.trim();
-  }
 
-  next();
+    next();
+  } catch (err) {
+    next(err as any);
+  }
 });
 
 const Event = models.Event || model<IEvent>('Event', EventSchema);
