@@ -145,10 +145,11 @@ EventSchema.pre('save', async function (this: any, next) {
     // Normalize time to HH:MM format if modified
     if (this.isModified('time')) {
       const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
-      if (!timeRegex.test(String(this.time).trim())) {
+      const timeStr = String(this.time).trim();
+      if (!timeRegex.test(timeStr)) {
         return next(new Error('Time must be in HH:MM format'));
       }
-      this.time = String(this.time).trim();
+      this.time = timeStr;
     }
 
     next();
