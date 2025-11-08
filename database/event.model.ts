@@ -131,7 +131,7 @@ EventSchema.pre('save', function (next) {
 
   // Normalize time to HH:MM format if modified
   if (this.isModified('time')) {
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
     if (!timeRegex.test(this.time.trim())) {
       return next(new Error('Time must be in HH:MM format'));
     }
