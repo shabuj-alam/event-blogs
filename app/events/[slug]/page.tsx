@@ -110,7 +110,7 @@ const EventDetailsPage = async({ params }: { params: Promise<{ slug: string }>})
                 <div className="events">
                     {similarEvents.length > 0 && similarEvents.map(
                         (similarEvent: IEvent) => (
-                            <EventCards key={ similarEvent.id } {...similarEvent} />
+                            <EventCards key={ similarEvent._id } {...similarEvent} />
                         )
                     )}
                 </div>
