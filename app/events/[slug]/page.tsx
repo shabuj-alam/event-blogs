@@ -1,9 +1,11 @@
+import React from 'react'
 import {notFound} from "next/navigation";
 import Image from "next/image";
 import BookEvents from "@/components/BookEvents";
 import {IEvent} from "@/database";
 import {getSimilarEventsBySLug} from "@/lib/actions/event.actions";
 import EventCards from "@/components/EventCards";
+import {cacheLife} from "next/cache";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
@@ -34,6 +36,9 @@ const EventTags = ({ tags }: { tags: string[] }) => (
 )
 
 const EventDetailsPage = async({ params }: { params: Promise<{ slug: string }>}) => {
+
+    'use cache';
+    cacheLife('hours');
 
     const { slug } = await params;
 
@@ -95,7 +100,7 @@ const EventDetailsPage = async({ params }: { params: Promise<{ slug: string }>})
                             </p>)
                         }
 
-                        <BookEvents />
+                        <BookEvents eventId={event._id} slug={slug}/>
                     </div>
                 </aside>
             </div>
